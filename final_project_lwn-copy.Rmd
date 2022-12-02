@@ -1,0 +1,155 @@
+---
+title: "final_project"
+author: "Wanni Lei"
+date: "2022-11-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(huxtable)
+library(gtsummary)
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+```
+
+```{r}
+Bladder <- read.csv("Bladder_Cancer_Bone_Metastasis.csv")
+```
+
+## Methods
+This is an observational study designed to find the potential predictors of skeletal-related event (SRE) among Bladder Cancer Patients with Bone Metastases. The associations between age at diagnosis of bladder cancer, did the patient have the symptoms at diagnosis of bone metastasis, and type of urinary diversion with SRE are what we are going to test. Dataset used in this study is manually abstracted from electronic medical records of a real clinical trial, including demographic (Sex, Ethnicity, Smoking history, et al.) and clinical characteristics (Type of urinary diversion, Did the patient have the symptoms at diagnosis of bone metastasis, Number of months from diagnosis of bone metastasis to the first skeletal-related event, et al.) of 329 patients with bone metastatic bladder cancer. This study has two cohorts, one is patients with bone metastatic bladder cancer developed an SRE within the first 2 months after diagnosis of metastatic disease, and the other is patients with bone metastatic bladder cancer did not develop an SRE within the first 2 months after diagnosis of metastatic disease. We excluded the patients who had SRE at the baseline. 
+
+#### Association between age at diagnosis of bladder cancer and SRE development.
+We compared the mean age at diagnosis of bladder cancer within the two cohorts mentioned above. First we draw boxplots to get the first insight of our data.
+
+```{r}
+## filter data
+sreBladder2m <- Bladder %>%
+    filter(months_from_bony_met_dx_to_1st_sre != 0) %>% ## exclude SRE at baseline
+    mutate(sreStatus = ifelse(!is.na(months_from_bony_met_dx_to_1st_sre) & 
+                                months_from_bony_met_dx_to_1st_sre <= 2, 
+                              "SRE in 2 months", "No SRE in 2 months"))
+
+y2m <- sreBladder2m %>% filter(sreStatus=="SRE in 2 months") ##SRE in 2 month
+n2m <- sreBladder2m %>% filter(sreStatus=="No SRE in 2 months") ## no sre in 2 month
+
+## The data is quite symetric and the sample size is large, so we can use t test
+sreBladder2m %>% 
+  ggplot(aes(x = sreStatus, y = age_at_bladder_cancer_diagnosis)) +
+  geom_boxplot()+
+  labs(title = "Age at diagnosis of bladder cancer by two SRE groups",
+       x="Wether develped SRE within 2 moth", 
+       y ="Age")
+
+var(y2m$age_at_bladder_cancer_diagnosis)
+var(n2m$age_at_bladder_cancer_diagnosis) 
+## the variances in two groups are quite different,
+##therefore, we use false in t.test
+```
+The boxplots show that the data in the two groups are quite symmetric and don't have obvious outliers. Moreover, the variances in the two are quite different, so we can use the t.test with `r var.equal=FALSE` to test the mean of age in the two cohorts.
+
+The Null hypothesis is: There is no association between age at diagnosis of bladder cancer with developed an SRE within the first 2 months. And the Alternative hypothesis is: There is an association between age at diagnosis of bladder cancer with developed an SRE within the first 2 months.
+```{r}
+## perform two sample t test to test the mean 
+tResults2 <- t.test(age_at_bladder_cancer_diagnosis ~ sreStatus,
+                    var.equal=FALSE, data=sreBladder2m) 
+
+paste("p value is ", tResults2$p.value %>% round(4))
+paste("95% CI of true difference in means is (", tResults2$conf.int[1] %>% round(4), 
+      ",", tResults2$conf.int[2]%>% round(4),")" )
+
+```
+
+#### Association between did the patient have the symptoms at diagnosis of bone metastasis and SRE development.
+
+The null hypothesis is: There is no association between did the patient have the symptoms at diagnosis of bone metastasis and SRE development. And the alternative hypothesis is there is an association between did the patient have the symptoms at diagnosis of bone metastasis and SRE development. First we use
+chi-square's test to compute the expected value of the obtained contigency table, we found that two  of the expected counts in this table is too small (<5), so Fisher’s Exact Test will be more appropriate. Therefore, we used Fisher’s exact test to test the dependency between SRE and did the patient have the symptoms at diagnosis of bone metastasis.
+```{r}
+## visualize of contigency table
+#table(sreBladder2m$symptomatic_at_bony_met_diagnosis,sreBladder2m$sreStatus)
+
+## clean the data
+sreBladder2m_clean <- sreBladder2m%>% 
+  mutate(symptomatic_at_bony_met_diagnosis=
+           ifelse(symptomatic_at_bony_met_diagnosis=="no", "No",symptomatic_at_bony_met_diagnosis))
+
+table <- table(sreBladder2m_clean$symptomatic_at_bony_met_diagnosis,sreBladder2m_clean$sreStatus)
+table ## table of cleaned data
+```
+
+
+```{r}
+expected <- chisq.test(table)$expected
+expected
+
+result1 <- fisher.test(table, conf.level = 0.95)
+result1
+
+```
+
+#### Association between Type of urinary diversion and SRE development.
+
+The null hypothesis is: There is no association between Type of urinary diversion and SRE development. And the alternative hypothesis is there is an association between Type of urinary diversion and SRE development. First we use
+chi-square's test to compute the expected value of the obtained contigency table, we found that none of the expected counts in this table less than 5, so Chi-square Test is appropriate for this situation. Therefore, we used Chi-square Test to test the dependency Type of urinary diversion and SRE development.
+```{r}
+## visualize of contigency table
+table2 <- table(sreBladder2m$type_of_urinary_diversion,sreBladder2m$sreStatus)
+table2
+expected <- chisq.test(table2,correct=FALSE)$expected
+expected
+
+result1 <- chisq.test(table2, correct=FALSE)
+result1
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,69 @@
+---
+title: "final_project"
+author: "Wanni Lei"
+date: "2022-11-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(huxtable)
+library(gtsummary)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+Bladder <- read.csv("Bladder_Cancer_Bone_Metastasis.csv")
+head(Bladder)
+```
+
+## 1.
+What are the descriptive characteristics of our patients?
+
+#### Solution:
+```{r}
+## change NA to missing, F to female, and m to male
+Bladder2 <- Bladder  %>% 
+    mutate(smoking_history = ifelse(is.na(smoking_history),"Missing", smoking_history))%>% 
+  mutate(Sex = ifelse(sex =="F", "Female","male")) %>% 
+  filter(!is.na(pre_bony_met_bmi))%>% 
+  mutate(Age = age_at_bladder_cancer_diagnosis)%>% 
+  mutate(BMI = pre_bony_met_bmi)
+
+## table of summary statistics for categorical 
+Bladder2 %>% 
+  select(Sex,smoking_history,ethnicity)%>% 
+  tbl_summary(label = list(smoking_history ~"Smoking history",
+    ethnicity~"Ethnicity"))%>%
+  modify_caption("**Table 1. Descriptive for  different characteristics of  patients**") %>%
+  modify_footnote(
+    all_stat_cols() ~ "Count(proportion)"
+  ) %>%
+  bold_labels() 
+
+## table2 is for continuous variable
+Bladder2 %>%
+  select(BMI, Age) %>%
+  gather("Characteristics", "Value", BMI, Age) %>%
+  group_by(Characteristics) %>%
+  summarise(mean = mean(Value)%>%round(3),
+            median = median(Value)%>%round(3),
+            sd = sd(Value)%>%round(3),
+            var = var(Value)%>%round(3),
+            quant_25 = quantile(Value, .25)%>%round(3),
+            quant_75 = quantile(Value, .75)%>%round(3),
+            min = min(Value),
+            max = max(Value)) %>%
+  mutate(IQR = paste0(sprintf("%.2f",quant_25)," to ",sprintf("%.2f",quant_75)),
+         Range = paste0(sprintf("%.2f",min)," to ",sprintf("%.2f",max))) %>%
+  select(-quant_25,-quant_75) -> dat_summaries
+dat_summaries %>% knitr::kable(caption = "Table2: Summary of age and bmi")
+
+Bladder %>% 
+  ggplot(aes(months_from_bony_met_dx_to_1st_sre)) +
+  geom_histogram() +
+  xlim(0, 6)
+```

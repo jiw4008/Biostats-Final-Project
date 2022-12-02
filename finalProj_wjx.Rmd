@@ -1,0 +1,236 @@
+---
+title: "Final Project"
+author: "Jiaxuan Wu"
+date: "Nov 10th, 2022"
+output:
+  pdf_document:
+    fig_height: 4.5
+    fig_width: 6
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r options, include=FALSE}
+knitr::opts_chunk$set(cache=FALSE, error=TRUE, message=FALSE, warning=FALSE, echo=F)
+```
+
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(gtsummary)
+library(plotly)
+```
+
+
+```{r}
+Bladder <- read.csv("Bladder_Cancer_Bone_Metastasis.csv")
+
+getStatus <- function(mons, data) {
+  sreBladderTmp <- data %>%
+    filter(months_from_bony_met_dx_to_1st_sre != 0) %>% 
+    mutate(sreStatus = ifelse(!is.na(months_from_bony_met_dx_to_1st_sre) & 
+                                months_from_bony_met_dx_to_1st_sre <= mons, 
+                              "SRE", "No SRE"))
+  sreBladderTmp
+}
+```
+
+# Methods
+
+## Methods for constant SRE diagnosed time
+
+For the statistical methods we chose for the variables stage, antiresportive therapy and sex, they are fisher's exact test, fisher's exact test and chi-square test respectively. 
+
+The first variable we are going to analyse is sexuality.
+```{r}
+sreSex <- table(getStatus(2, Bladder)$sex, getStatus(2, Bladder)$sreStatus)
+sreSexExp <- chisq.test(sreSex)$expected %>% round(0)
+sreSexExp
+```
+
+For the expected table of sexuality versus 2 month's SRE, we can see that there's no value less than 5, so we may choose chi-square test for this variable.
+
+The second variable we are going to analyse is the disease stage at diagnosis of bladder cancer.
+```{r}
+sreStage <- table(getStatus(2, Bladder)$stage_at_diagnosis, getStatus(2, Bladder)$sreStatus)
+sreStageExp <- chisq.test(sreStage)$expected %>% round(0)
+sreStageExp
+```
+
+For the expected table of the disease stage at diagnosis of bladder cancer versus 2 month's SRE, we can see that there's some values less than 5, so we may choose fisher's exact test for this variable.
+
+The third variable we are going to analyse is the type of metastasis at diagnosis of bladder cancer.
+```{r}
+sreMetaType <- table(getStatus(2, Bladder)$type_of_metastasis_at_diagnosis, getStatus(2, Bladder)$sreStatus)
+sreMetaTypeExp <- chisq.test(sreMetaType)$expected %>% round(0)
+sreMetaTypeExp
+```
+
+For the expected table of the type of metastasis at diagnosis of bladder cancer versus 2 month's SRE, we can see that there's some values less than 5, so we may choose fisher's exact test for this variable.
+
+## Methods for the time-sensitive SRE diagnosed time, using the variable of cystectomy
+The variable that we are going to explore its time sensitivity of SRE diagnosed time is the cystectomy.
+
+Firstly, if we set the bar of getting diagnosis of SRE at 1 month, which means the criteria for grouping the cystectomy is if the patient get SRE less than one month, we can use the statistical methods following this analysis:
+```{r}
+sreCys1 <- table(getStatus(1, Bladder)$cystectomy, getStatus(1, Bladder)$sreStatus)
+sreCys1Exp <- chisq.test(sreCys1)$expected %>% round(0)
+sreCys1Exp
+```
+
+As the contingency table show, all the values in this table are greater than 5, so we can use ch-square test to finish this analysis.
+
+Secondly, we will set the bar of getting diagnosis of SRE at 2 month, which will be conducted using the similar analysis way:
+```{r}
+sreCys2 <- table(getStatus(2, Bladder)$cystectomy, getStatus(2, Bladder)$sreStatus)
+sreCys2Exp <- chisq.test(sreCys2)$expected %>% round(0)
+sreCys2Exp
+```
+
+As the contingency table show, all the values in this table are greater than 5, so we can use chi-square test to finish this analysis.
+
+Thirdly, we will set the bar of getting diagnosis of SRE at 3 month, which is like this:
+```{r}
+sreCys3 <- table(getStatus(3, Bladder)$cystectomy, getStatus(3, Bladder)$sreStatus)
+sreCys3Exp <- chisq.test(sreCys3)$expected %>% round(0)
+sreCys3Exp
+```
+
+As the contingency table show, all the values in this table are greater than 5, so we can use chi-square test to finish this analysis.
+
+Fourthly, we will set the bar of getting diagnosis of SRE at 3 month, which is like this:
+```{r}
+sreCys4 <- table(getStatus(4, Bladder)$cystectomy, getStatus(4, Bladder)$sreStatus)
+sreCys4Exp <- chisq.test(sreCys4)$expected %>% round(0)
+sreCys4Exp
+```
+
+As the contingency table show, all the values in this table are greater than 5, so we can use chi-square test to finish this analysis.
+
+# Results
+
+## Results for a given month as the bar of getting diagnosis of SRE
+```{r}
+tables <- matrix(c(chisq.test(sreSex)$p.value, chisq.test(sreStage)$p.value, fisher.test(sreMetaType)$p.value), nrow=3, byrow = T)
+rownames(tables) <- c("Sex", "Stage of Diagnosis", "Type of metastasis at diagnosis of bladder cancer")
+colnames(tables) <- c("p-value")
+
+tables %>% knitr::kable(digits = 3)
+```
+
+For the variable of the stage, we use fisher's exact test and get p value more than 0.05, so we can conclude that there's not enough evidence to reject the null hypothesis that there's no relationship between the Stage and getting SRE within 2 months.
+
+For the variable of the sexuality, we use fisher's exact test and get p value more than 0.05, so we can conclude that there's not enough evidence to reject the null hypothesis that there's no relationship between the sexuality and getting SRE within 2 months.
+
+For the variable of the diagnosis stage, we use fisher's exact test and get p value more than 0.05, so we can conclude that there's not enough evidence to reject the null hypothesis that there's no relationship between the diagnosis stage and getting SRE within 2 months.
+
+## Results for a time-sensitive month of getting diagnosis of SRE
+```{r}
+tables <- matrix(c(chisq.test(sreCys1)$p.value, chisq.test(sreCys2)$p.value, 
+                   chisq.test(sreCys3)$p.value, chisq.test(sreCys4)$p.value), nrow=4, byrow = T)
+rownames(tables) <- c("have SRE in one month versus Cystectomy", "have SRE in two month versus Cystectomy", 
+                      "have SRE in three month versus Cystectomy", "have SRE in four month versus Cystectomy")
+colnames(tables) <- c("p-value")
+
+tables %>% knitr::kable(digits = 3)
+```
+
+As what we analysed in the last step, we can find that only chi-square tests are needed to perform these contingency table. And we have the result that cystectomy's tests only have the p-value less than 0.05 when the threshold of month when they get diagnosis of SRE is 1, 2 and 3 months. And the p value for 4 months is more than 0.05. In other words, we can find out that there's evidence that cystectomy has the relationship with getting SRE in one, two and three months, but not enough evidence that having relationship with getting SRE in 4 four month.
+
+
+## Results for time-sensitive of getting SRE in all variables
+```{r}
+getSummaryP <- function(df, var) {
+  tableSummary <- df %>% select(var, sreStatus) %>% tbl_summary(by = sreStatus) %>% add_p()
+  tableSummary$table_body[1,]$p.value
+}
+
+getPs <- function(mons) {
+  sreBladder6m <- Bladder %>%
+    filter(months_from_bony_met_dx_to_1st_sre != 0) %>% 
+    mutate(sreStatus = ifelse(!is.na(months_from_bony_met_dx_to_1st_sre) & 
+                                months_from_bony_met_dx_to_1st_sre <= mons, 
+                              "SRE", "No SRE"))
+  
+  sreSexP <- getSummaryP(sreBladder6m, "sex")
+  
+  sreEthnicityP <- getSummaryP(sreBladder6m, "ethnicity")
+  
+  sreSmokeP <- getSummaryP(sreBladder6m, "smoking_history")
+  
+  sreBmiP <- getSummaryP(sreBladder6m, "pre_bony_met_bmi")
+  
+  sreAgeP <- getSummaryP(sreBladder6m, "age_at_bladder_cancer_diagnosis")
+  
+  sreStageP <- getSummaryP(sreBladder6m, "stage_at_diagnosis")
+  
+  sreTumorP <- getSummaryP(sreBladder6m, "histology_of_primary_tumor")
+  
+  sreCysP <- getSummaryP(sreBladder6m, "cystectomy")
+  
+  sreUriP <- getSummaryP(sreBladder6m, "type_of_urinary_diversion")
+  
+  sreMetaP <- getSummaryP(sreBladder6m, "type_of_metastasis_at_diagnosis")
+  
+  sreVerteP <- getSummaryP(sreBladder6m, "bony_met_at_dx_vertebrae")
+  
+  srePelP <- getSummaryP(sreBladder6m, "bony_met_at_dx_pelvis")
+  
+  srehipP <- getSummaryP(sreBladder6m, "bony_met_at_dx_hip")
+  
+  sreChestP <- getSummaryP(sreBladder6m, "bony_met_at_dx_non_vertebral_chest")
+  
+  sreExtreP <- getSummaryP(sreBladder6m, "bony_met_at_dx_extremity")
+  
+  sreSkullP <- getSummaryP(sreBladder6m, "bony_met_at_dx_skull")
+  
+  sreSympoP <- getSummaryP(sreBladder6m, "symptomatic_at_bony_met_diagnosis")
+  
+  sreAntireP <- getSummaryP(sreBladder6m, "antiresportive_therapy")
+  
+  sreVisP <- getSummaryP(sreBladder6m, "visceral_met_at_bone_met_diagnosis")
+  
+  sreSitesP <- getSummaryP(sreBladder6m, "num_sites_involved")
+  
+  
+  pValues <- c(sreSexP, sreEthnicityP, sreSmokeP,
+               sreBmiP, sreAgeP, sreStageP, sreTumorP, sreCysP, sreUriP, sreMetaP,
+               sreVerteP, srePelP, srehipP, sreChestP, sreExtreP, sreSkullP, 
+               sreSympoP, sreAntireP, sreVisP, sreSitesP)
+  newline <- as.data.frame(pValues) %>% round(4)
+  newline$monthsToSRE <- mons
+  newline$Name <- c("Sex", "Ethnicity", "Smoke",
+                    "Bmi", "Age", "Stage", "Tumor", "Cys", "Uri", "Meta",
+                    "Verte", "Pel", "hi", "Chest", "Extre", "Skull", 
+                    "Sympo", "Antire", "Vis", "Sites")
+  newline
+}
+
+tbl <- getPs(1)
+for (mons in seq(1.5, 4
+                 , by=0.5)) {
+  tbl <- rbind(tbl, getPs(mons))
+}
+```
+
+
+```{r}
+tbl %>% 
+  ggplot(aes(monthsToSRE, log(pValues), color=Name)) +
+  geom_line() +
+  geom_hline(yintercept=log(0.05), linetype="dashed", color = "red")
+
+
+Bladder %>% 
+  filter(months_from_bony_met_dx_to_1st_sre == months_from_bony_met_to_last_fu)
+
+boxplot(Bladder$months_from_bony_met_dx_to_1st_sre)
+```
+
+As we can see in the plot, the variables symptomatic and urinary diversion have the p value less than 0.05 at all threholds of months to get SRE between 0 to 4. However, for the values age, cystectomy, pelvis and diagnosis stage, they only have p-values less than 0.05 only in some thresholds of months of getting SRE. For example, the hypothesis test of Cystectomy and having SRE only has the p-values less than 0.05 in one, two and three months, but greater in four months. Which means, Cystectomy only relates to the diagnosis of SRE in one, two and three month, but does not affect the diagnosis of SRE within four months. 
+
+
+
