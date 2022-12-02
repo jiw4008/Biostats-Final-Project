@@ -3,37 +3,54 @@ title: "final_project"
 author: "Wanni Lei"
 date: "2022-11-18"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(echo = TRUE)
 library(huxtable)
 library(gtsummary)
 library(tidyverse)
 library(ggplot2)
 library(ggpubr)
+library(kableExtra)
+library(gt)
+library(formattable)
+library(knitr)
 ```
 
 ```{r}
+setwd("/Users/wanni/Desktop/final_project")
 Bladder <- read.csv("Bladder_Cancer_Bone_Metastasis.csv")
 ```
 
 ## Methods
 This is an observational study designed to find the potential predictors of skeletal-related event (SRE) among Bladder Cancer Patients with Bone Metastases. The associations between age at diagnosis of bladder cancer, did the patient have the symptoms at diagnosis of bone metastasis, and type of urinary diversion with SRE are what we are going to test. Dataset used in this study is manually abstracted from electronic medical records of a real clinical trial, including demographic (Sex, Ethnicity, Smoking history, et al.) and clinical characteristics (Type of urinary diversion, Did the patient have the symptoms at diagnosis of bone metastasis, Number of months from diagnosis of bone metastasis to the first skeletal-related event, et al.) of 329 patients with bone metastatic bladder cancer. This study has two cohorts, one is patients with bone metastatic bladder cancer developed an SRE within the first 2 months after diagnosis of metastatic disease, and the other is patients with bone metastatic bladder cancer did not develop an SRE within the first 2 months after diagnosis of metastatic disease. We excluded the patients who had SRE at the baseline. 
 
+#### Why use 2 months to represent the risk of SRE
+```{r}
+sreBladder2m <- Bladder %>%
+    filter(months_from_bony_met_dx_to_1st_sre != 0) %>% ## exclude SRE at baseline
+    mutate(sreStatus = ifelse(months_from_bony_met_dx_to_1st_sre <= 2, 
+                              "SRE in 2 months", "No SRE in 2 months"))
+
+c2m <- sreBladder2m %>% filter(sreStatus=="SRE in 2 months")
+
+prop2m <- nrow(c2m)/nrow(sreBladder2m)
+prop2m %>%round(3)   
+
+
+
+```
+Because more than 60% patients developed SRE within 2 months, so we use developed SRE within 2 months to represent the risk of SRE.
+
+
+
 #### Association between age at diagnosis of bladder cancer and SRE development.
 We compared the mean age at diagnosis of bladder cancer within the two cohorts mentioned above. First we draw boxplots to get the first insight of our data.
 
 ```{r}
-## filter data
-sreBladder2m <- Bladder %>%
-    filter(months_from_bony_met_dx_to_1st_sre != 0) %>% ## exclude SRE at baseline
-    mutate(sreStatus = ifelse(!is.na(months_from_bony_met_dx_to_1st_sre) & 
-                                months_from_bony_met_dx_to_1st_sre <= 2, 
-                              "SRE in 2 months", "No SRE in 2 months"))
-
 y2m <- sreBladder2m %>% filter(sreStatus=="SRE in 2 months") ##SRE in 2 month
 n2m <- sreBladder2m %>% filter(sreStatus=="No SRE in 2 months") ## no sre in 2 month
 
@@ -97,10 +114,11 @@ The null hypothesis is: There is no association between Type of urinary diversio
 chi-square's test to compute the expected value of the obtained contigency table, we found that none of the expected counts in this table less than 5, so Chi-square Test is appropriate for this situation. Therefore, we used Chi-square Test to test the dependency Type of urinary diversion and SRE development.
 ```{r}
 ## visualize of contigency table
-table2 <- table(sreBladder2m$type_of_urinary_diversion,sreBladder2m$sreStatus)
+table2 <- table(sreBladder2m$type_of_urinary_diversion,
+                sreBladder2m$sreStatus)
 table2
 expected <- chisq.test(table2,correct=FALSE)$expected
-expected
+#expected
 
 result1 <- chisq.test(table2, correct=FALSE)
 result1
@@ -108,7 +126,74 @@ result1
 ```
 
 
+#### There are tables of our variables of interests.
+```{r}
+## change NA to missing, F to female, and m to male
+Bladder2 <- Bladder  %>% 
+    mutate(smoking_history = ifelse(is.na(smoking_history),"Missing", smoking_history))%>% 
+  mutate(Sex = ifelse(sex =="F", "Female","male")) %>% 
+  filter(!is.na(pre_bony_met_bmi))%>% 
+  mutate(Age = age_at_bladder_cancer_diagnosis)%>% 
+  mutate(BMI = pre_bony_met_bmi)
 
+## table of summary statistics for categorical 
+Bladder2 %>% 
+  select(Sex,smoking_history,ethnicity)%>% 
+  tbl_summary(label = list(smoking_history ~"Smoking history",
+    ethnicity~"Ethnicity"))%>%
+  modify_caption("**Table 1. Descriptive for  different characteristics of  patients**") %>%
+  modify_footnote(
+    all_stat_cols() ~ "Count(proportion)"
+  ) %>%
+  bold_labels()
+
+
+
+## table2 is for continuous variable
+Bladder2 %>%
+  select(BMI, Age) %>%
+  gather("Characteristics", "Value", BMI, Age) %>%
+  group_by(Characteristics) %>%
+  summarise(mean = mean(Value)%>%round(3),
+            median = median(Value)%>%round(3),
+            sd = sd(Value)%>%round(3),
+            var = var(Value)%>%round(3),
+            quant_25 = quantile(Value, .25)%>%round(3),
+            quant_75 = quantile(Value, .75)%>%round(3),
+            min = min(Value),
+            max = max(Value)) %>%
+  mutate(IQR = paste0(sprintf("%.2f",quant_25)," to ",sprintf("%.2f",quant_75)),
+         Range = paste0(sprintf("%.2f",min)," to ",sprintf("%.2f",max))) %>%
+  select(-quant_25,-quant_75) -> dat_summaries
+dat_summaries %>% kbl(caption = "Table2: Summary of age and BMI") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+  
+  
+  
+  
+  #knitr::kable(caption = "Table2: Summary of age and bmi")
+
+
+
+
+
+
+## contingency table
+formattable(table) %>% 
+  kbl(caption = "Table3: SRE status by wether patient have the symptoms at diagnosis of bone") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+  #kable("html", escape = F, caption = "Table3: SRE status by wether patient have the symptoms at diagnosis of bone")
+
+formattable(table2) %>% 
+  kbl(caption = "Table4: SRE status by Type of urinary diversion") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+  #kable("html", escape = F, caption = "Table4: SRE status by Type of urinary diversion")
+
+
+
+```
 
 
 
