@@ -349,11 +349,11 @@ tbl_clinic %>%
   theme_minimal()
 ```
 
-As we can see in the plot, the variables symptomatic and urinary diversion have the p value less than 0.05 at all threholds of months to get SRE between 0 to 4. However, for the values age, cystectomy, pelvis and diagnosis stage, they only have p-values less than 0.05 only in some thresholds of months of getting SRE. For example, the hypothesis test of Cystectomy and having SRE only has the p-values less than 0.05 in one, two and three months, but greater in four months. Which means, Cystectomy only relates to the diagnosis of SRE in one, two and three month, but does not affect the diagnosis of SRE within four months.
+As we can see in the plot, the variables symptomatic has the p value less than 0.05 at all threholds of months to get SRE between 0 to 4. However, for the variables age and diagnosis stage, they have p-values less than 0.05 only in some thresholds of months of getting SRE. For example, the hypothesis test of age and development of SRE only has the p-values less than 0.05 in 1.5 and 2 months, but greater in other months. Which means, Age only relates to the development of SRE in 1.5 and 2 months, but does not affect the development of SRE within other month thresholds.
 
 
 ## Conclusion
-
+The conclusion is that 
 
 ## Reference
 Stellato M, Santini D, Cursano MC, Foderaro S, Tonini G, Procopio G. Bone metastases from urothelial carcinoma. The dark side of the moon. J Bone Oncol. 2021 Nov 28;31:100405. doi: 10.1016/j.jbo.2021.100405. PMID: 34934613; PMCID: PMC8661045.\n
